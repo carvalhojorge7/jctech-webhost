@@ -101,7 +101,7 @@ sleep 10
 
 # Usar o cliente mc dentro de um container temporário para configurar o MinIO
 log "Criando bucket $S3_BUCKET no MinIO..."
-docker run --rm --network=host minio/mc config host add myminio http://localhost:9010 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD" || {
+docker run --rm --network=host minio/mc alias set myminio http://localhost:9010 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD" || {
   echo "Erro ao configurar cliente MinIO. Verifique as credenciais e a conectividade."
   exit 1
 }

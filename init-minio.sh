@@ -20,7 +20,7 @@ fi
 
 # Configurar cliente MinIO
 echo "Configurando cliente MinIO..."
-mc config host add myminio http://localhost:9010 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD"
+mc alias set myminio http://localhost:9010 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD"
 
 # Criar o bucket se não existir
 mc mb --ignore-existing myminio/${S3_BUCKET}
