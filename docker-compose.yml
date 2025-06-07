@@ -1,0 +1,95 @@
+version: '3.8'
+
+services:
+  postgres16:
+    image: postgres:16
+    container_name: postgres16
+    restart: always
+    ports:
+      - "5432:5432" # Expor a porta 5432 para acesso externo e de outros contêineres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      PGDATA: ${PGDATA}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data # Volume para persistência dos dados
+
+  minio:
+    image: minio/minio:latest # Use a tag específica se necessário
+    container_name: minio
+    restart: always
+    ports:
+      - "9000:9000" # Porta da API
+      - "9001:9001" # Porta do Console
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      MINIO_BUCKET_NAME: ${MINIO_BUCKET_NAME}
+    volumes:
+      - minio_data:/data # Volume para persistência dos dados do MinIO
+    command: server /data --console-address ":9001"
+
+  typebot:
+    image: typebot/typebot:latest # Use a tag específica se necessário
+    container_name: typebot
+    restart: always
+    ports:
+      - "3000:3000" # Porta padrão do Typebot
+    environment:
+      DATABASE_URL: ${TYPEBOT_DATABASE_URL}
+      JWT_SECRET: ${ENCRYPTION_SECRET}
+      NEXTAUTH_SECRET: ${ENCRYPTION_SECRET}
+      NEXT_PUBLIC_TYPEBOT_SESSION_PASSWORD: ${ENCRYPTION_SECRET}
+      ADMIN_EMAIL: ${ADMIN_EMAIL}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      GITHUB_ID: ${GITHUB_ID}
+      GITHUB_SECRET: ${GITHUB_SECRET}
+      NEXTAUTH_URL: ${NEXTAUTH_URL}
+      # Variáveis de ambiente para o MinIO
+      S3_ENDPOINT: http://minio:9000 # Endereço do serviço MinIO dentro da rede Docker
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY}
+      S3_SECRET_KEY: ${S3_SECRET_KEY}
+      S3_BUCKET: ${S3_BUCKET}
+      S3_PORT: 9000
+      S3_REGION: us-east-1
+      S3_SSL: false
+      # Adicione outras variáveis de ambiente do Typebot conforme necessário
+    volumes:
+      - typebot_data:/app/data # Volume para dados do Typebot
+    depends_on:
+      - postgres16 # Typebot depende do PostgreSQL
+      - minio # Typebot depende do MinIO
+
+  evolutionapi:
+    image: evolutionapi/evolutionapi:latest
+    container_name: evolutionapi
+    restart: always
+    ports:
+      - "8080:8080"
+    environment:
+      # Variáveis de ambiente para Evolution API
+      DATABASE_URL: ${EVOLUTION_DATABASE_URL}
+      EVOLUTION_API_KEY: ${EVOLUTION_API_KEY}
+      WEBHOOK_URL: ${WEBHOOK_URL}
+      # Configurações do banco de dados
+      DATABASE_CONNECTION_HOST: postgres16
+      DATABASE_CONNECTION_PORT: 5432
+      DATABASE_CONNECTION_USER: ${POSTGRES_USER}
+      DATABASE_CONNECTION_PASSWORD: ${POSTGRES_PASSWORD}
+      DATABASE_CONNECTION_DB_NAME: evolutionapi
+      # Configurações de segurança
+      AUTHENTICATION_TYPE: apikey
+      AUTHENTICATION_API_KEY: ${EVOLUTION_API_KEY}
+      # Configurações globais
+      GLOBAL_WEBHOOK_URL: ${WEBHOOK_URL}
+    volumes:
+      - evolutionapi_data:/evolution/instances
+    depends_on:
+      - postgres16
+
+volumes:
+  postgres_data:
+  minio_data: # Novo volume para o MinIO
+  typebot_data:
+  evolutionapi_data: # Definição dos volumes nomeados
