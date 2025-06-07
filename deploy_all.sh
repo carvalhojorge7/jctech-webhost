@@ -60,8 +60,10 @@ fi
 log "Criando diretórios para volumes..."
 mkdir -p ./postgres_data
 mkdir -p ./minio_data
-mkdir -p ./typebot_data
-mkdir -p ./evolutionapi_data
+mkdir -p ./typebot_builder_data
+mkdir -p ./typebot_viewer_data
+mkdir -p ./evolution_instances
+mkdir -p ./evolution_redis
 
 # Iniciar PostgreSQL primeiro
 log "Iniciando PostgreSQL..."
@@ -90,14 +92,25 @@ log "Configurando bucket do MinIO..."
 S3_ACCESS_KEY=$(grep S3_ACCESS_KEY .env | cut -d '=' -f2)
 S3_SECRET_KEY=$(grep S3_SECRET_KEY .env | cut -d '=' -f2)
 S3_BUCKET=$(grep S3_BUCKET .env | cut -d '=' -f2)
+MINIO_ROOT_USER=$(grep MINIO_ROOT_USER .env | cut -d '=' -f2)
+MINIO_ROOT_PASSWORD=$(grep MINIO_ROOT_PASSWORD .env | cut -d '=' -f2)
+
+# Aguardar MinIO inicializar completamente
+info "Aguardando MinIO inicializar completamente..."
+sleep 10
 
 # Usar o cliente mc dentro de um container temporário para configurar o MinIO
-docker run --rm --network host -e MC_HOST_local=http://$S3_ACCESS_KEY:$S3_SECRET_KEY@localhost:9000 minio/mc mb local/$S3_BUCKET --ignore-existing || true
-docker run --rm --network host -e MC_HOST_local=http://$S3_ACCESS_KEY:$S3_SECRET_KEY@localhost:9000 minio/mc policy set download local/$S3_BUCKET || true
+log "Criando bucket $S3_BUCKET no MinIO..."
+docker run --rm --network=host minio/mc config host add myminio http://localhost:9010 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD" || {
+  echo "Erro ao configurar cliente MinIO. Verifique as credenciais e a conectividade."
+  exit 1
+}
+docker run --rm --network=host minio/mc mb --ignore-existing myminio/$S3_BUCKET
+docker run --rm --network=host minio/mc policy set download myminio/$S3_BUCKET
 
-# Iniciar Typebot
-log "Iniciando Typebot..."
-docker compose up -d typebot
+# Iniciar Typebot Builder e Viewer
+log "Iniciando Typebot Builder e Viewer..."
+docker compose up -d typebot-builder typebot-viewer
 
 # Iniciar Evolution API
 log "Iniciando Evolution API..."

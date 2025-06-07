@@ -14,11 +14,12 @@ if [ ! -f docker-compose.yml ]; then
     exit 1
 fi
 
-# Cria o diretório para os dados persistentes do Typebot se não existir
-mkdir -p ./typebot_data
+# Cria os diretórios para os dados persistentes do Typebot se não existirem
+mkdir -p ./typebot_builder_data
+mkdir -p ./typebot_viewer_data
 
-# Inicia o serviço typebot em modo detached
-echo "Iniciando o serviço typebot..."
-docker compose up -d typebot
+# Inicia os serviços typebot-builder e typebot-viewer em modo detached
+echo "Iniciando os serviços typebot-builder e typebot-viewer..."
+docker compose up -d typebot-builder typebot-viewer
 
 echo "Serviço typebot iniciado. Verifique o status com 'docker compose ps'."

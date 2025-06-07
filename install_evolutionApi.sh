@@ -14,11 +14,15 @@ if [ ! -f docker-compose.yml ]; then
     exit 1
 fi
 
-# Cria o diretório para os dados persistentes da Evolution API se não existir (ajuste o nome do volume se necessário)
-mkdir -p ./evolutionapi_data
+# Cria os diretórios para os dados persistentes da Evolution API e Redis se não existirem
+mkdir -p ./evolution_instances
+mkdir -p ./evolution_redis
 
-# Inicia o serviço evolutionapi em modo detached
-echo "Iniciando o serviço evolutionapi..."
+# Inicia os serviços redis e evolutionapi em modo detached
+echo "Iniciando o serviço Redis..."
+docker compose up -d redis
+
+echo "Iniciando o serviço Evolution API..."
 docker compose up -d evolutionapi
 
 echo "Serviço evolutionapi iniciado. Verifique o status com 'docker compose ps'."

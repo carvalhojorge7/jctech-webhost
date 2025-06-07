@@ -20,8 +20,8 @@ services:
     container_name: minio
     restart: always
     ports:
-      - "9000:9000" # Porta da API
-      - "9001:9001" # Porta do Console
+      - "9010:9000" # Porta da API (alterada para evitar conflitos)
+      - "9011:9001" # Porta do Console (alterada para evitar conflitos)
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
@@ -30,39 +30,82 @@ services:
       - minio_data:/data # Volume para persistência dos dados do MinIO
     command: server /data --console-address ":9001"
 
-  typebot:
-    image: typebot/typebot:latest # Use a tag específica se necessário
-    container_name: typebot
+  typebot-builder:
+    image: baptistearno/typebot-builder:latest
+    container_name: typebot-builder
     restart: always
     ports:
-      - "3000:3000" # Porta padrão do Typebot
+      - "${BUILDER_PORT}:3000" # Porta do Builder
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
     environment:
       DATABASE_URL: ${TYPEBOT_DATABASE_URL}
-      JWT_SECRET: ${ENCRYPTION_SECRET}
-      NEXTAUTH_SECRET: ${ENCRYPTION_SECRET}
-      NEXT_PUBLIC_TYPEBOT_SESSION_PASSWORD: ${ENCRYPTION_SECRET}
+      NEXTAUTH_URL: ${NEXTAUTH_URL}
+      NEXT_PUBLIC_VIEWER_URL: ${NEXT_PUBLIC_VIEWER_URL}
+      ENCRYPTION_SECRET: ${ENCRYPTION_SECRET}
       ADMIN_EMAIL: ${ADMIN_EMAIL}
-      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      # Credenciais de autenticação
+      NEXTAUTH_SECRET: ${ENCRYPTION_SECRET}
       GITHUB_ID: ${GITHUB_ID}
       GITHUB_SECRET: ${GITHUB_SECRET}
-      NEXTAUTH_URL: ${NEXTAUTH_URL}
-      # Variáveis de ambiente para o MinIO
-      S3_ENDPOINT: http://minio:9000 # Endereço do serviço MinIO dentro da rede Docker
+      # Configurações de email
+      SMTP_USERNAME: ${SMTP_USERNAME}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_SECURE: ${SMTP_SECURE}
+      SMTP_FROM: ${NEXT_PUBLIC_SMTP_FROM}
+      # Configurações do S3/MinIO
       S3_ACCESS_KEY: ${S3_ACCESS_KEY}
       S3_SECRET_KEY: ${S3_SECRET_KEY}
       S3_BUCKET: ${S3_BUCKET}
+      S3_ENDPOINT: http://minio:9000
       S3_PORT: 9000
       S3_REGION: us-east-1
       S3_SSL: false
-      # Adicione outras variáveis de ambiente do Typebot conforme necessário
     volumes:
-      - typebot_data:/app/data # Volume para dados do Typebot
+      - typebot_builder_data:/typebot/builder/.next/cache
     depends_on:
-      - postgres16 # Typebot depende do PostgreSQL
-      - minio # Typebot depende do MinIO
+      - postgres16
+      - minio
+
+  typebot-viewer:
+    image: baptistearno/typebot-viewer:latest
+    container_name: typebot-viewer
+    restart: always
+    ports:
+      - "${VIEWER_PORT}:3000" # Porta do Viewer
+    environment:
+      DATABASE_URL: ${TYPEBOT_DATABASE_URL}
+      NEXTAUTH_URL: ${NEXTAUTH_URL}
+      NEXT_PUBLIC_VIEWER_URL: ${NEXT_PUBLIC_VIEWER_URL}
+      ENCRYPTION_SECRET: ${ENCRYPTION_SECRET}
+      # Configurações do S3/MinIO
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY}
+      S3_SECRET_KEY: ${S3_SECRET_KEY}
+      S3_BUCKET: ${S3_BUCKET}
+      S3_ENDPOINT: http://minio:9000
+      S3_PORT: 9000
+      S3_REGION: us-east-1
+      S3_SSL: false
+    volumes:
+      - typebot_viewer_data:/typebot/viewer/.next/cache
+    depends_on:
+      - postgres16
+      - minio
+
+  redis:
+    image: redis:latest
+    container_name: redis
+    restart: always
+    command: redis-server --port 6379 --appendonly yes
+    volumes:
+      - evolution_redis:/data
+    ports:
+      - "6379:6379"
 
   evolutionapi:
-    image: evolutionapi/evolutionapi:latest
+    image: atendai/evolution-api:homolog # Imagem oficial da Evolution API
     container_name: evolutionapi
     restart: always
     ports:
@@ -83,13 +126,18 @@ services:
       AUTHENTICATION_API_KEY: ${EVOLUTION_API_KEY}
       # Configurações globais
       GLOBAL_WEBHOOK_URL: ${WEBHOOK_URL}
+      # Configurações do Redis
+      REDIS_URI: redis://redis:6379
     volumes:
-      - evolutionapi_data:/evolution/instances
+      - evolution_instances:/evolution/instances
     depends_on:
       - postgres16
+      - redis
 
 volumes:
   postgres_data:
-  minio_data: # Novo volume para o MinIO
-  typebot_data:
-  evolutionapi_data: # Definição dos volumes nomeados
+  minio_data: # Volume para o MinIO
+  typebot_builder_data: # Volume para o Typebot Builder
+  typebot_viewer_data: # Volume para o Typebot Viewer
+  evolution_instances: # Volume para as instâncias da Evolution API
+  evolution_redis: # Volume para o Redis

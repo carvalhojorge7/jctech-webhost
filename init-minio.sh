@@ -2,10 +2,10 @@
 
 # Script para inicializar o MinIO e criar o bucket necessário para o Typebot
 
-# Verificar se o MinIO está rodando
-echo "Verificando se o MinIO está em execução..."
-until curl -s http://localhost:9000/minio/health/ready; do
-  echo "Aguardando o MinIO iniciar..."
+# Aguardar MinIO inicializar
+echo "Aguardando MinIO inicializar..."
+while ! curl -s http://localhost:9010/minio/health/live > /dev/null; do
+  echo "Aguardando MinIO inicializar..."
   sleep 5
 done
 
@@ -18,8 +18,9 @@ if ! command -v mc &> /dev/null; then
   chmod +x /usr/local/bin/mc
 fi
 
-# Configurar o cliente MinIO
-mc alias set myminio http://localhost:9000 ${S3_ACCESS_KEY} ${S3_SECRET_KEY}
+# Configurar cliente MinIO
+echo "Configurando cliente MinIO..."
+mc config host add myminio http://localhost:9010 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD"
 
 # Criar o bucket se não existir
 mc mb --ignore-existing myminio/${S3_BUCKET}

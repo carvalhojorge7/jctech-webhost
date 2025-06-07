@@ -66,9 +66,10 @@ Após a implantação, os seguintes serviços estarão disponíveis:
 
 - **Portainer**: http://seu-ip:9000 (gerenciamento de contêineres)
 - **Nginx Proxy Manager**: http://seu-ip:81 (gerenciamento de proxy)
-- **Typebot Builder**: https://typebot.seu-dominio.com (configurado no .env)
-- **Typebot Viewer**: https://bot.seu-dominio.com (configurado no .env)
-- **MinIO Console**: https://minios3.seu-dominio.com (configurado no .env)
+- **Typebot Builder**: https://typebot.seu-dominio.com (porta ${BUILDER_PORT}, configurado no .env)
+- **Typebot Viewer**: https://bot.seu-dominio.com (porta ${VIEWER_PORT}, configurado no .env)
+- **MinIO API**: http://seu-ip:9010 (porta alterada para evitar conflitos)
+- **MinIO Console**: http://seu-ip:9011 (porta alterada para evitar conflitos)
 - **Evolution API**: https://evolutionapi.seu-dominio.com (configurado no .env)
 
 ## Configuração do Nginx Proxy Manager
@@ -80,8 +81,10 @@ Para acessar os serviços através dos domínios configurados, você precisa con
    - Email: admin@example.com
    - Senha: changeme
 3. Adicione um novo proxy host para cada serviço:
-   - Typebot Builder: porta 3000
-   - MinIO Console: porta 9001
+   - Typebot Builder: porta ${BUILDER_PORT} (definida no .env, padrão 9090)
+   - Typebot Viewer: porta ${VIEWER_PORT} (definida no .env, padrão 9091)
+   - MinIO API: porta 9010 (alterada para evitar conflitos)
+   - MinIO Console: porta 9011 (alterada para evitar conflitos)
    - Evolution API: porta 8080
 
 ## Segurança
