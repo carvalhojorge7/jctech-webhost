@@ -86,27 +86,16 @@ docker compose up -d minio
 info "Aguardando MinIO inicializar..."
 sleep 5
 
-# Configurar bucket do MinIO
-log "Configurando bucket do MinIO..."
-# Extrair variáveis do arquivo .env
-S3_ACCESS_KEY=$(grep S3_ACCESS_KEY .env | cut -d '=' -f2)
-S3_SECRET_KEY=$(grep S3_SECRET_KEY .env | cut -d '=' -f2)
-S3_BUCKET=$(grep S3_BUCKET .env | cut -d '=' -f2)
-MINIO_ROOT_USER=$(grep MINIO_ROOT_USER .env | cut -d '=' -f2)
-MINIO_ROOT_PASSWORD=$(grep MINIO_ROOT_PASSWORD .env | cut -d '=' -f2)
-
 # Aguardar MinIO inicializar completamente
 info "Aguardando MinIO inicializar completamente..."
 sleep 10
 
-# Usar o cliente mc dentro de um container temporário para configurar o MinIO
-log "Criando bucket $S3_BUCKET no MinIO..."
-docker run --rm --network=host minio/mc alias set myminio http://localhost:9010 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD" || {
-  echo "Erro ao configurar cliente MinIO. Verifique as credenciais e a conectividade."
-  exit 1
-}
-docker run --rm --network=host minio/mc mb --ignore-existing myminio/$S3_BUCKET
-docker run --rm --network=host minio/mc policy set download myminio/$S3_BUCKET
+# Extrair variável do bucket do arquivo .env
+S3_BUCKET=$(grep S3_BUCKET .env | cut -d '=' -f2)
+
+log "MinIO inicializado. O bucket deve ser criado manualmente pelo console do MinIO."
+info "Acesse o console do MinIO em http://localhost:9011 e crie o bucket '$S3_BUCKET' manualmente."
+info "Use as credenciais definidas nas variáveis MINIO_ROOT_USER e MINIO_ROOT_PASSWORD no arquivo .env"
 
 # Iniciar Typebot Builder e Viewer
 log "Iniciando Typebot Builder e Viewer..."
