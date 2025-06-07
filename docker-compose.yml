@@ -57,10 +57,10 @@ services:
       S3_ACCESS_KEY: ${S3_ACCESS_KEY}
       S3_SECRET_KEY: ${S3_SECRET_KEY}
       S3_BUCKET: ${S3_BUCKET}
-      S3_ENDPOINT: http://minio:9000
-      S3_PORT: 9000
-      S3_REGION: us-east-1
-      S3_SSL: false
+      S3_ENDPOINT: ${S3_ENDPOINT}
+      S3_PORT: ${S3_PORT}
+      S3_REGION: ${S3_REGION}
+      S3_SSL: ${S3_SSL}
     volumes:
       - typebot_builder_data:/typebot/builder/.next/cache
     depends_on:
@@ -82,10 +82,10 @@ services:
       S3_ACCESS_KEY: ${S3_ACCESS_KEY}
       S3_SECRET_KEY: ${S3_SECRET_KEY}
       S3_BUCKET: ${S3_BUCKET}
-      S3_ENDPOINT: http://minio:9000
-      S3_PORT: 9000
-      S3_REGION: us-east-1
-      S3_SSL: false
+      S3_ENDPOINT: ${S3_ENDPOINT}
+      S3_PORT: ${S3_PORT}
+      S3_REGION: ${S3_REGION}
+      S3_SSL: ${S3_SSL}
     volumes:
       - typebot_viewer_data:/typebot/viewer/.next/cache
     depends_on:
@@ -103,17 +103,14 @@ services:
       - "6379:6379"
 
   evolutionapi:
-    image: atendai/evolution-api:homolog # Imagem oficial da Evolution API
+    image: atendai/evolution-api:homolog
     container_name: evolutionapi
     restart: always
     ports:
       - "8080:8080"
     environment:
-      # Variáveis de ambiente para Evolution API
+      # Database Configuration
       DATABASE_URL: ${EVOLUTION_DATABASE_URL}
-      EVOLUTION_API_KEY: ${EVOLUTION_API_KEY}
-      WEBHOOK_URL: ${WEBHOOK_URL}
-      # Configurações do banco de dados
       DATABASE_ENABLED: true
       DATABASE_CONNECTION_URI: ${EVOLUTION_DATABASE_URL}
       DATABASE_CONNECTION_DB_PREFIX_TABLE: false
@@ -122,18 +119,44 @@ services:
       DATABASE_SAVE_MESSAGE_UPDATE: true
       DATABASE_SAVE_DATA_CONTACTS: true
       DATABASE_SAVE_DATA_CHATS: true
-      # Configurações de segurança
+
+      # Authentication Configuration
       AUTHENTICATION_TYPE: apikey
       AUTHENTICATION_API_KEY: ${EVOLUTION_API_KEY}
-      # Configurações globais
+
+      # Webhook Configuration
+      WEBHOOK_URL: ${WEBHOOK_URL}
       GLOBAL_WEBHOOK_URL: ${WEBHOOK_URL}
-      # Configurações do Redis
+
+      # Redis Configuration
       REDIS_URI: redis://redis:6379
+
+      # Additional Security Settings
+      CORS_ORIGIN: ${CORS_ORIGIN:-*}
+      CORS_METHODS: "GET,POST,PUT,DELETE"
+      CORS_CREDENTIALS: true
+
+      # Instance Configuration
+      DEL_INSTANCE: false
+      DEL_TEMP_INSTANCES: true
+
+      # Log Configuration
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      LOG_COLOR: true
+
     volumes:
       - evolution_instances:/evolution/instances
+      - evolution_store:/evolution/store
     depends_on:
       - postgres16
       - redis
+    networks:
+      - evolution_network
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
 volumes:
   postgres_data:
@@ -142,3 +165,9 @@ volumes:
   typebot_viewer_data: # Volume para o Typebot Viewer
   evolution_instances: # Volume para as instâncias da Evolution API
   evolution_redis: # Volume para o Redis
+  evolution_store:
+    # Volume para o armazenamento da Evolution API
+
+networks:
+  evolution_network:
+    driver: bridge
