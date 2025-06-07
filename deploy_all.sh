@@ -86,16 +86,7 @@ docker compose up -d minio
 info "Aguardando MinIO inicializar..."
 sleep 5
 
-# Aguardar MinIO inicializar completamente
-info "Aguardando MinIO inicializar completamente..."
-sleep 10
-
-# Extrair variável do bucket do arquivo .env
-S3_BUCKET=$(grep S3_BUCKET .env | cut -d '=' -f2)
-
-log "MinIO inicializado. O bucket deve ser criado manualmente pelo console do MinIO."
-info "Acesse o console do MinIO em http://localhost:9011 e crie o bucket '$S3_BUCKET' manualmente."
-info "Use as credenciais definidas nas variáveis MINIO_ROOT_USER e MINIO_ROOT_PASSWORD no arquivo .env"
+log "MinIO inicializado. Configure-o pelo painel de controle em http://localhost:9011"
 
 # Iniciar Typebot Builder e Viewer
 log "Iniciando Typebot Builder e Viewer..."
